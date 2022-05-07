@@ -48,7 +48,7 @@ func decryptAccessToken(data string, encryption_key string) string {
 	key_tag := data[2 : 2+key_len]
 	fmt.Printf("Type: %d \n", key_type)
 	fmt.Printf("Length: %d \n", key_len)
-	fmt.Printf("Key Tag (hex): %x \n", key_tag)
+	fmt.Printf("Key Tag: %s \n", key_tag)
 
 	/*
 	   With AES.GCM, 12-byte IV length is necessary for interoperability reasons.
