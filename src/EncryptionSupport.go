@@ -4,17 +4,12 @@ import (
 	"crypto/aes"
 	"crypto/cipher"
 	"crypto/sha256"
-	"encoding/hex"
 	"fmt"
-	"strconv"
 )
 
 // decryptAccessToken funct to decrypt tokens from database
 func decryptAccessToken(data string, encryption_key string) string {
 
-	data = hex.EncodeToString([]byte(data))
-
-	fmt.Printf("Data: %s \n", data)
 	/*
 	   From Adrian....
 	   I had a look at how to decode the binary input without additional libraries. Below is sample code for Elixir. An important detail is that  "Additional Authenticated Data (AAD) " is required to decrypt the tokens. The AAD is a fixed string, in this case "AES256GCM”.
@@ -47,13 +42,13 @@ func decryptAccessToken(data string, encryption_key string) string {
 	}
 
 	// first byte
-	key_type, _ := strconv.ParseInt(data[0:2], 16, 64)
+	key_type := int([]rune(data)[0])
 	// second byte
-	key_len, _ := strconv.ParseInt(data[2:4], 16, 64)
-	key_tag, _ := hex.DecodeString(data[4 : 4+(key_len*2)])
+	key_len := int([]rune(data)[1])
+	key_tag := data[2 : 2+key_len]
 	fmt.Printf("Type: %d \n", key_type)
 	fmt.Printf("Length: %d \n", key_len)
-	fmt.Printf("Key Tag: %s \n", key_tag)
+	fmt.Printf("Key Tag (hex): %x \n", key_tag)
 
 	/*
 	   With AES.GCM, 12-byte IV length is necessary for interoperability reasons.
@@ -62,11 +57,11 @@ func decryptAccessToken(data string, encryption_key string) string {
 	   https://medium.com/@fridakahsas/salt-nonces-and-ivs-whats-the-difference-d7a44724a447#:~:text=IV%20and%20nonce%20are%20often,an%20IV%20must%20be%20random.
 	*/
 
-	nonce, _ := hex.DecodeString(data[4+(key_len*2) : 4+(key_len*2)+24])
-	fmt.Printf("IV: %x \n", nonce)
+	nonce := data[2+key_len : 2+key_len+12]
+	fmt.Printf("IV (hex): %x \n", nonce)
 
-	ciphertag, _ := hex.DecodeString(data[4+(key_len*2)+24 : 4+(key_len*2)+24+32])
-	fmt.Printf("Ciphertag: %x \n", ciphertag)
+	ciphertag := data[2+key_len+12 : 2+key_len+12+16]
+	fmt.Printf("Ciphertag (hex): %x \n", ciphertag)
 
 	aesgcm, err := cipher.NewGCMWithTagSize(block, 16)
 	if err != nil {
@@ -75,10 +70,10 @@ func decryptAccessToken(data string, encryption_key string) string {
 
 	// https://stackoverflow.com/a/68353192
 	// golang aes expects cipertag to append ciphertext....
-	ciphertext_tag, _ := hex.DecodeString(data[4+(key_len*2)+24+32:] + data[4+(key_len*2)+24:4+(key_len*2)+24+32])
+	ciphertext_tag := data[2+key_len+12+16:] + data[2+key_len+12:2+key_len+12+16]
 
 	// AES256GCM -- Additional Authenticated Data (AAD)
-	plaintext, err := aesgcm.Open(nil, nonce, ciphertext_tag, []byte("AES256GCM"))
+	plaintext, err := aesgcm.Open(nil, []byte(nonce), []byte(ciphertext_tag), []byte("AES256GCM"))
 	if err != nil {
 		panic(err.Error())
 	}
