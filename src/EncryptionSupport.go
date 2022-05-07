@@ -12,6 +12,9 @@ import (
 // decryptAccessToken funct to decrypt tokens from database
 func decryptAccessToken(data string, encryption_key string) string {
 
+	data = hex.EncodeToString([]byte(data))
+
+	fmt.Printf("Data: %s \n", data)
 	/*
 	   From Adrian....
 	   I had a look at how to decode the binary input without additional libraries. Below is sample code for Elixir. An important detail is that  "Additional Authenticated Data (AAD) " is required to decrypt the tokens. The AAD is a fixed string, in this case "AES256GCM”.
